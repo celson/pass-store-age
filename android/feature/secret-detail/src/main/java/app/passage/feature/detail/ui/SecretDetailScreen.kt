@@ -340,6 +340,7 @@ fun TotpCard(
     var currentCode by remember { mutableStateOf(TotpGenerator.generateCode(config)) }
     var remainingSeconds by remember { mutableStateOf(TotpGenerator.getRemainingSeconds(config.periodSeconds)) }
     var progress by remember { mutableFloatStateOf(TotpGenerator.getProgress(config.periodSeconds)) }
+    var isCodeVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(config) {
         while (true) {
@@ -388,11 +389,17 @@ fun TotpCard(
                     "${currentCode.substring(0, 3)} ${currentCode.substring(3)}"
                 } else currentCode
                 Text(
-                    text = formatted,
+                    text = if (isCodeVisible) formatted else "••• •••",
                     style = MaterialTheme.typography.headlineMedium,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            IconButton(onClick = { isCodeVisible = !isCodeVisible }) {
+                Icon(
+                    imageVector = if (isCodeVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = if (isCodeVisible) "Ocultar Código 2FA" else "Revelar Código 2FA"
                 )
             }
             IconButton(onClick = { onCopyTotp(currentCode) }) {
