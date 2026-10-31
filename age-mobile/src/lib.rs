@@ -152,8 +152,8 @@ mod tests {
         let res = identity_to_recipient("not_an_age_key".to_string());
         assert!(res.is_err());
         match res.unwrap_err() {
-            AgeError::InvalidIdentity { message } => {
-                assert!(message.contains("AGE-SECRET-KEY-1"));
+            AgeError::InvalidIdentity { reason } => {
+                assert!(reason.contains("AGE-SECRET-KEY-1"));
             }
             _ => panic!("Expected InvalidIdentity"),
         }

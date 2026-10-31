@@ -34,50 +34,50 @@ pub fn encrypt_internal(
             age::armor::Format::AsciiArmor,
         )
         .map_err(|e| AgeError::EncryptionFailed {
-            message: e.to_string(),
+            reason: e.to_string(),
         })?;
 
         let mut encrypt_writer = encryptor
             .wrap_output(armored_writer)
             .map_err(|e| AgeError::EncryptionFailed {
-                message: e.to_string(),
+                reason: e.to_string(),
             })?;
 
         encrypt_writer
             .write_all(plaintext)
             .map_err(|e| AgeError::EncryptionFailed {
-                message: e.to_string(),
+                reason: e.to_string(),
             })?;
 
         let inner_armored = encrypt_writer
             .finish()
             .map_err(|e| AgeError::EncryptionFailed {
-                message: e.to_string(),
+                reason: e.to_string(),
             })?;
 
         inner_armored
             .finish()
             .map_err(|e| AgeError::EncryptionFailed {
-                message: e.to_string(),
+                reason: e.to_string(),
             })?;
     } else {
         let mut encrypt_writer =
             encryptor
                 .wrap_output(&mut output)
                 .map_err(|e| AgeError::EncryptionFailed {
-                    message: e.to_string(),
+                    reason: e.to_string(),
                 })?;
 
         encrypt_writer
             .write_all(plaintext)
             .map_err(|e| AgeError::EncryptionFailed {
-                message: e.to_string(),
+                reason: e.to_string(),
             })?;
 
         encrypt_writer
             .finish()
             .map_err(|e| AgeError::EncryptionFailed {
-                message: e.to_string(),
+                reason: e.to_string(),
             })?;
     }
 
@@ -109,7 +109,7 @@ fn decrypt_from_reader<R: Read>(
     passphrase: Option<&str>,
 ) -> Result<Vec<u8>, AgeError> {
     let decryptor = age::Decryptor::new(reader).map_err(|e| AgeError::DecryptionFailed {
-        message: e.to_string(),
+        reason: e.to_string(),
     })?;
 
     match decryptor {
@@ -129,14 +129,14 @@ fn decrypt_from_reader<R: Read>(
             let mut decrypt_reader = d
                 .decrypt(id_refs.into_iter())
                 .map_err(|e| AgeError::DecryptionFailed {
-                    message: e.to_string(),
+                    reason: e.to_string(),
                 })?;
 
             let mut decrypted = Vec::new();
             decrypt_reader
                 .read_to_end(&mut decrypted)
                 .map_err(|e| AgeError::DecryptionFailed {
-                    message: e.to_string(),
+                    reason: e.to_string(),
                 })?;
 
             Ok(decrypted)
@@ -148,14 +148,14 @@ fn decrypt_from_reader<R: Read>(
             let mut decrypt_reader = d
                 .decrypt(&secret_pass, None)
                 .map_err(|e| AgeError::DecryptionFailed {
-                    message: e.to_string(),
+                    reason: e.to_string(),
                 })?;
 
             let mut decrypted = Vec::new();
             decrypt_reader
                 .read_to_end(&mut decrypted)
                 .map_err(|e| AgeError::DecryptionFailed {
-                    message: e.to_string(),
+                    reason: e.to_string(),
                 })?;
 
             Ok(decrypted)

@@ -2,11 +2,11 @@ use thiserror::Error;
 
 #[derive(Debug, Error, uniffi::Error)]
 pub enum AgeError {
-    #[error("Invalid identity key: {message}")]
-    InvalidIdentity { message: String },
+    #[error("Invalid identity key: {reason}")]
+    InvalidIdentity { reason: String },
 
-    #[error("Invalid recipient: {message}")]
-    InvalidRecipient { message: String },
+    #[error("Invalid recipient: {reason}")]
+    InvalidRecipient { reason: String },
 
     #[error("No recipients specified for encryption")]
     NoRecipients,
@@ -14,26 +14,26 @@ pub enum AgeError {
     #[error("No identities specified for decryption")]
     NoIdentities,
 
-    #[error("Encryption failed: {message}")]
-    EncryptionFailed { message: String },
+    #[error("Encryption failed: {reason}")]
+    EncryptionFailed { reason: String },
 
-    #[error("Decryption failed: {message}")]
-    DecryptionFailed { message: String },
+    #[error("Decryption failed: {reason}")]
+    DecryptionFailed { reason: String },
 
     #[error("Passphrase required or invalid")]
     PassphraseRequired,
 
-    #[error("Failed to parse gopass secret: {message}")]
-    GopassParseError { message: String },
+    #[error("Failed to parse gopass secret: {reason}")]
+    GopassParseError { reason: String },
 
-    #[error("IO error: {message}")]
-    IoError { message: String },
+    #[error("IO error: {reason}")]
+    IoError { reason: String },
 }
 
 impl From<std::io::Error> for AgeError {
     fn from(err: std::io::Error) -> Self {
         AgeError::IoError {
-            message: err.to_string(),
+            reason: err.to_string(),
         }
     }
 }

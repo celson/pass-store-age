@@ -8,7 +8,7 @@ pub fn parse_recipient(s: &str) -> Result<Box<dyn age::Recipient + Send>, AgeErr
 
     if trimmed.is_empty() {
         return Err(AgeError::InvalidRecipient {
-            message: "Recipient cannot be empty".to_string(),
+            reason: "Recipient cannot be empty".to_string(),
         });
     }
 
@@ -16,14 +16,14 @@ pub fn parse_recipient(s: &str) -> Result<Box<dyn age::Recipient + Send>, AgeErr
         match age::x25519::Recipient::from_str(trimmed) {
             Ok(rec) => Ok(Box::new(rec)),
             Err(e) => Err(AgeError::InvalidRecipient {
-                message: format!("Invalid age X25519 recipient: {}", e),
+                reason: format!("Invalid age X25519 recipient: {}", e),
             }),
         }
     } else if trimmed.starts_with("ssh-") {
         match age::ssh::Recipient::from_str(trimmed) {
             Ok(rec) => Ok(Box::new(rec)),
             Err(e) => Err(AgeError::InvalidRecipient {
-                message: format!("Invalid SSH recipient: {:?}", e),
+                reason: format!("Invalid SSH recipient: {:?}", e),
             }),
         }
     } else {
@@ -35,7 +35,7 @@ pub fn parse_recipient(s: &str) -> Result<Box<dyn age::Recipient + Send>, AgeErr
             return Ok(Box::new(rec));
         }
         Err(AgeError::InvalidRecipient {
-            message: format!("Unsupported recipient format: {}", trimmed),
+            reason: format!("Unsupported recipient format: {}", trimmed),
         })
     }
 }

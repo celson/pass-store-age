@@ -1152,18 +1152,18 @@ sealed class AgeException: kotlin.Exception() {
     
     class InvalidIdentity(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : AgeException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class InvalidRecipient(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : AgeException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class NoRecipients(
@@ -1180,18 +1180,18 @@ sealed class AgeException: kotlin.Exception() {
     
     class EncryptionFailed(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : AgeException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class DecryptionFailed(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : AgeException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class PassphraseRequired(
@@ -1202,18 +1202,18 @@ sealed class AgeException: kotlin.Exception() {
     
     class GopassParseException(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : AgeException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
     class IoException(
         
-        val `message`: kotlin.String
+        val `reason`: kotlin.String
         ) : AgeException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "reason=${ `reason` }"
     }
     
 
@@ -1262,12 +1262,12 @@ public object FfiConverterTypeAgeError : FfiConverterRustBuffer<AgeException> {
             is AgeException.InvalidIdentity -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is AgeException.InvalidRecipient -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is AgeException.NoRecipients -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
@@ -1280,12 +1280,12 @@ public object FfiConverterTypeAgeError : FfiConverterRustBuffer<AgeException> {
             is AgeException.EncryptionFailed -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is AgeException.DecryptionFailed -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is AgeException.PassphraseRequired -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
@@ -1294,12 +1294,12 @@ public object FfiConverterTypeAgeError : FfiConverterRustBuffer<AgeException> {
             is AgeException.GopassParseException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
             is AgeException.IoException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`reason`)
             )
         }
     }
@@ -1308,12 +1308,12 @@ public object FfiConverterTypeAgeError : FfiConverterRustBuffer<AgeException> {
         when(value) {
             is AgeException.InvalidIdentity -> {
                 buf.putInt(1)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is AgeException.InvalidRecipient -> {
                 buf.putInt(2)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is AgeException.NoRecipients -> {
@@ -1326,12 +1326,12 @@ public object FfiConverterTypeAgeError : FfiConverterRustBuffer<AgeException> {
             }
             is AgeException.EncryptionFailed -> {
                 buf.putInt(5)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is AgeException.DecryptionFailed -> {
                 buf.putInt(6)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is AgeException.PassphraseRequired -> {
@@ -1340,12 +1340,12 @@ public object FfiConverterTypeAgeError : FfiConverterRustBuffer<AgeException> {
             }
             is AgeException.GopassParseException -> {
                 buf.putInt(8)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
             is AgeException.IoException -> {
                 buf.putInt(9)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`reason`, buf)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
