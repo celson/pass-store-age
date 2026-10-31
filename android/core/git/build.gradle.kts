@@ -25,7 +25,10 @@ android {
 dependencies {
     // JGit Core & JSch SSH support
     implementation(libs.jgit)
-    implementation(libs.jgit.ssh.jsch)
+    implementation(libs.jgit.ssh.jsch) {
+        // Replaced by the mwiede fork below; both ship com.jcraft.jsch.*
+        exclude(group = "com.jcraft", module = "jsch")
+    }
 
     // Modern JSch with Ed25519 & modern cipher support
     implementation(libs.jsch)
