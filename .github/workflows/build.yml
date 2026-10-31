@@ -31,14 +31,14 @@ jobs:
           # Accept SDK licenses
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           
-          # Detect pre-installed NDK on GitHub Actions runner or install
-          NDK_PATH=$(ls -d $ANDROID_HOME/ndk/* 2>/dev/null | sort -V | tail -n 1)
-          if [ -z "$NDK_PATH" ]; then
-            echo "Installing Android NDK..."
-            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.3.11579264"
-            NDK_PATH="$ANDROID_HOME/ndk/26.3.11579264"
+          # Match ANDROID_NDK_HOME with runner's ANDROID_NDK_ROOT or detect
+          if [ -n "$ANDROID_NDK_ROOT" ] && [ -d "$ANDROID_NDK_ROOT" ]; then
+            NDK_PATH="$ANDROID_NDK_ROOT"
+          else
+            NDK_PATH=$(ls -d $ANDROID_HOME/ndk/* 2>/dev/null | sort -V | tail -n 1)
           fi
           echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$NDK_PATH" >> $GITHUB_ENV
           echo "Selected NDK: $NDK_PATH"
 
       - name: Set up Rust Toolchain
