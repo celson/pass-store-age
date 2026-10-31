@@ -64,7 +64,7 @@ val appModule = module {
                     name = file.name.removeSuffix(".age"),
                     relativePath = relativePath,
                     password = gopassSecret.password,
-                    attributes = gopassSecret.attributes,
+                    attributes = gopassSecret.orderedAttributes(),
                     notes = gopassSecret.notes
                 )
             }
@@ -75,7 +75,7 @@ val appModule = module {
                 recipientsOverride: List<String>?
             ): Result<Unit> = runCatching {
                 val recipients = recipientsOverride ?: walker.findRecipientsForPath(repoDir, relativePath)
-                val gopassSecret = GopassSecret(secret.password, secret.attributes, secret.notes)
+                val gopassSecret = GopassSecret(secret.password, secret.attributes, secret.attributes.keys.toList(), secret.notes)
                 val encrypted = crypto.encryptSecret(gopassSecret, recipients).getOrThrow()
 
                 val file = File(repoDir, relativePath)
@@ -125,4 +125,12 @@ val appModule = module {
             sshKeyFile = File(context.filesDir, "ssh/id_ed25519")
         )
     }
+}
+
+/** Attributes in the order they appear in the file (the engine returns them as an unordered map). */
+private fun GopassSecret.orderedAttributes(): Map<String, String> {
+    val ordered = LinkedHashMap<String, String>()
+    attributeOrder.forEach { key -> attributes[key]?.let { ordered[key] = it } }
+    attributes.forEach { (key, value) -> ordered.putIfAbsent(key, value) }
+    return ordered
 }

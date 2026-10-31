@@ -1111,6 +1111,10 @@ data class GopassSecret (
      */
     var `attributes`: Map<kotlin.String, kotlin.String>, 
     /**
+     * Attribute keys in the order they appear in the file (a HashMap has no order)
+     */
+    var `attributeOrder`: List<kotlin.String>, 
+    /**
      * Freeform notes or comments
      */
     var `notes`: kotlin.String
@@ -1127,6 +1131,7 @@ public object FfiConverterTypeGopassSecret: FfiConverterRustBuffer<GopassSecret>
         return GopassSecret(
             FfiConverterString.read(buf),
             FfiConverterMapStringString.read(buf),
+            FfiConverterSequenceString.read(buf),
             FfiConverterString.read(buf),
         )
     }
@@ -1134,12 +1139,14 @@ public object FfiConverterTypeGopassSecret: FfiConverterRustBuffer<GopassSecret>
     override fun allocationSize(value: GopassSecret) = (
             FfiConverterString.allocationSize(value.`password`) +
             FfiConverterMapStringString.allocationSize(value.`attributes`) +
+            FfiConverterSequenceString.allocationSize(value.`attributeOrder`) +
             FfiConverterString.allocationSize(value.`notes`)
     )
 
     override fun write(value: GopassSecret, buf: ByteBuffer) {
             FfiConverterString.write(value.`password`, buf)
             FfiConverterMapStringString.write(value.`attributes`, buf)
+            FfiConverterSequenceString.write(value.`attributeOrder`, buf)
             FfiConverterString.write(value.`notes`, buf)
     }
 }

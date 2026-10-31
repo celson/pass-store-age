@@ -7,6 +7,8 @@ pub struct GopassSecret {
     pub password: String,
     /// Key-value attributes (e.g. "login", "url", "otpauth", "recovery_keys")
     pub attributes: HashMap<String, String>,
+    /// Attribute keys in the order they appear in the file (a HashMap has no order)
+    pub attribute_order: Vec<String>,
     /// Freeform notes or comments
     pub notes: String,
 }
@@ -16,6 +18,7 @@ impl GopassSecret {
         Self {
             password,
             attributes: HashMap::new(),
+            attribute_order: Vec::new(),
             notes: String::new(),
         }
     }
@@ -30,6 +33,7 @@ pub fn parse_gopass_secret_internal(raw: &str) -> GopassSecret {
     let password = lines.next().unwrap_or("").to_string();
 
     let mut attributes = HashMap::new();
+    let mut attribute_order: Vec<String> = Vec::new();
     let mut notes_lines: Vec<&str> = Vec::new();
     let mut in_notes_section = false;
 
@@ -50,7 +54,12 @@ pub fn parse_gopass_secret_internal(raw: &str) -> GopassSecret {
             let trimmed_key = key.trim();
             // Validate key looks like an attribute identifier (no spaces in standard keys)
             if !trimmed_key.is_empty() && !trimmed_key.contains(' ') {
-                attributes.insert(trimmed_key.to_string(), value.trim().to_string());
+                if attributes
+                    .insert(trimmed_key.to_string(), value.trim().to_string())
+                    .is_none()
+                {
+                    attribute_order.push(trimmed_key.to_string());
+                }
                 continue;
             }
         }
@@ -64,6 +73,7 @@ pub fn parse_gopass_secret_internal(raw: &str) -> GopassSecret {
     GopassSecret {
         password,
         attributes,
+        attribute_order,
         notes,
     }
 }
@@ -74,9 +84,19 @@ pub fn serialize_gopass_secret_internal(secret: &GopassSecret) -> String {
     output.push_str(&secret.password);
     output.push('\n');
 
-    // Sort keys for deterministic output
-    let mut keys: Vec<&String> = secret.attributes.keys().collect();
-    keys.sort();
+    // Keep the file order; keys without a recorded position go last, sorted, so output stays deterministic
+    let mut keys: Vec<&String> = secret
+        .attribute_order
+        .iter()
+        .filter(|k| secret.attributes.contains_key(*k))
+        .collect();
+    let mut unordered: Vec<&String> = secret
+        .attributes
+        .keys()
+        .filter(|k| !secret.attribute_order.contains(*k))
+        .collect();
+    unordered.sort();
+    keys.extend(unordered);
 
     for key in keys {
         if let Some(val) = secret.attributes.get(key) {
@@ -125,5 +145,13 @@ mod tests {
         assert_eq!(parsed.password, "just_a_simple_password");
         assert!(parsed.attributes.is_empty());
         assert!(parsed.notes.is_empty());
+    }
+
+    #[test]
+    fn test_attribute_order_is_preserved() {
+        let raw = "pw\nzone: z\naccount: a\napi: x\n--\nnote";
+        let parsed = parse_gopass_secret_internal(raw);
+        assert_eq!(parsed.attribute_order, vec!["zone", "account", "api"]);
+        assert_eq!(serialize_gopass_secret_internal(&parsed), "pw\nzone: z\naccount: a\napi: x\n--\nnote\n");
     }
 }
