@@ -1,5 +1,6 @@
 package app.passage.feature.detail.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,7 +27,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -139,7 +140,7 @@ fun SecretDetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(relativePath.substringAfterLast("/")) },
+                title = { Text(relativePath.substringAfterLast("/").removeSuffix(".age")) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -178,152 +179,130 @@ fun SecretDetailScreen(
 
                 is SecretDetailUiState.Success -> {
                     val secret = state.secret
+                    val otpEntry = secret.attributes.entries.firstOrNull {
+                        it.key.equals("otpauth", ignoreCase = true) || it.value.startsWith("otpauth://", ignoreCase = true)
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp)
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Password Card
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "Senha",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = if (isPasswordVisible) secret.password else MASKED_VALUE,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontFamily = FontFamily.Monospace,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                                        Icon(
-                                            imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                            contentDescription = if (isPasswordVisible) "Ocultar" else "Revelar"
-                                        )
-                                    }
-                                    IconButton(onClick = {
-                                        viewModel.copyPassword(secret.password)
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Senha copiada! Limpeza em 30s")
-                                        }
-                                    }) {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar Senha")
-                                    }
-                                }
-                            }
-                        }
+                        SecretFieldCard(
+                            label = "Senha",
+                            contentName = "Senha",
+                            value = secret.password,
+                            isRevealed = isPasswordVisible,
+                            onToggleReveal = { isPasswordVisible = !isPasswordVisible },
+                            onCopy = {
+                                viewModel.copyPassword(secret.password)
+                                scope.launch { snackbarHostState.showSnackbar("Senha copiada! Limpeza em 30s") }
+                            },
+                            valueStyle = MaterialTheme.typography.titleLarge,
+                            monospace = true
+                        )
 
-                        // 2FA / TOTP Card (if present)
-                        val otpEntry = secret.attributes.entries.firstOrNull {
-                            it.key.equals("otpauth", ignoreCase = true) || it.value.startsWith("otpauth://", ignoreCase = true)
-                        }
                         if (otpEntry != null) {
-                            Spacer(modifier = Modifier.height(16.dp))
                             TotpCard(
                                 otpAuthUri = otpEntry.value,
                                 onCopyTotp = { code ->
                                     viewModel.copyPassword(code)
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Código 2FA copiado! Limpeza em 30s")
-                                    }
+                                    scope.launch { snackbarHostState.showSnackbar("Código 2FA copiado! Limpeza em 30s") }
                                 }
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
                         // Attributes (login, url, etc.)
                         secret.attributes.filter { it.key != otpEntry?.key }.forEach { (key, value) ->
-                            OutlinedCard(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = key.replaceFirstChar { it.uppercase() },
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                        val isRevealed = key in revealedAttributes
-                                        Text(
-                                            text = if (isRevealed) value else MASKED_VALUE,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
+                            SecretFieldCard(
+                                label = key.replaceFirstChar { it.uppercase() },
+                                contentName = key,
+                                value = value,
+                                isRevealed = key in revealedAttributes,
+                                onToggleReveal = {
+                                    revealedAttributes = if (key in revealedAttributes) {
+                                        revealedAttributes - key
+                                    } else {
+                                        revealedAttributes + key
                                     }
-                                    IconButton(onClick = {
-                                        revealedAttributes = if (key in revealedAttributes) {
-                                            revealedAttributes - key
-                                        } else {
-                                            revealedAttributes + key
-                                        }
-                                    }) {
-                                        Icon(
-                                            imageVector = if (key in revealedAttributes) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                            contentDescription = if (key in revealedAttributes) "Ocultar $key" else "Revelar $key"
-                                        )
-                                    }
-                                    IconButton(onClick = {
-                                        viewModel.copyAttribute(key, value)
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("$key copiado!")
-                                        }
-                                    }) {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar $key")
-                                    }
+                                },
+                                onCopy = {
+                                    viewModel.copyAttribute(key, value)
+                                    scope.launch { snackbarHostState.showSnackbar("$key copiado!") }
                                 }
-                            }
+                            )
                         }
 
-                        // Notes section
                         if (secret.notes.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Notas",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                IconButton(onClick = { areNotesVisible = !areNotesVisible }) {
-                                    Icon(
-                                        imageVector = if (areNotesVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = if (areNotesVisible) "Ocultar notas" else "Revelar notas"
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    text = if (areNotesVisible) secret.notes else MASKED_VALUE,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(14.dp)
-                                )
-                            }
+                            SecretFieldCard(
+                                label = "Notas",
+                                contentName = "notas",
+                                value = secret.notes,
+                                isRevealed = areNotesVisible,
+                                onToggleReveal = { areNotesVisible = !areNotesVisible },
+                                onCopy = {
+                                    viewModel.copyAttribute("Notas", secret.notes)
+                                    scope.launch { snackbarHostState.showSnackbar("Notas copiadas!") }
+                                },
+                                valueStyle = MaterialTheme.typography.bodyMedium,
+                                multiline = true
+                            )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One secret value (password, attribute, notes) in a card: masked by default, with the
+ * reveal and copy buttons inside the card. Every field uses this so they all look the same.
+ */
+@Composable
+private fun SecretFieldCard(
+    label: String,
+    contentName: String,
+    value: String,
+    isRevealed: Boolean,
+    onToggleReveal: () -> Unit,
+    onCopy: () -> Unit,
+    valueStyle: TextStyle = MaterialTheme.typography.bodyLarge,
+    monospace: Boolean = false,
+    multiline: Boolean = false
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.outline
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = if (multiline) Alignment.Top else Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (isRevealed) value else MASKED_VALUE,
+                    style = valueStyle,
+                    fontFamily = if (monospace) FontFamily.Monospace else null,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = if (multiline) 12.dp else 0.dp)
+                )
+                IconButton(onClick = onToggleReveal) {
+                    Icon(
+                        imageVector = if (isRevealed) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (isRevealed) "Ocultar $contentName" else "Revelar $contentName"
+                    )
+                }
+                IconButton(onClick = onCopy) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copiar $contentName")
                 }
             }
         }
@@ -355,7 +334,7 @@ fun TotpCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -375,14 +354,14 @@ fun TotpCard(
                     text = "${remainingSeconds}s",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Código 2FA / TOTP" + (config.issuer?.let { " ($it)" } ?: ""),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.outline
                 )
                 val formatted = if (currentCode.length == 6) {
@@ -393,7 +372,7 @@ fun TotpCard(
                     style = MaterialTheme.typography.headlineMedium,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             IconButton(onClick = { isCodeVisible = !isCodeVisible }) {
