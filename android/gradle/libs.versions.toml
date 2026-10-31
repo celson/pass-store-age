@@ -51,6 +51,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 
 # Git & SSH
 jgit = { group = "org.eclipse.jgit", name = "org.eclipse.jgit", version.ref = "jgit" }
+jgit-ssh-jsch = { group = "org.eclipse.jgit", name = "org.eclipse.jgit.ssh.jsch", version.ref = "jgit" }
 jsch = { group = "com.github.mwiede", name = "jsch", version.ref = "jsch" }
 slf4j-nop = { group = "org.slf4j", name = "slf4j-nop", version.ref = "slf4j" }
 

@@ -131,7 +131,7 @@ class GitSyncEngine {
                     SyncResult.Success(commit.name, "Committed and pushed: ${commit.shortMessage}")
                 } else {
                     val errDetails = pushResults.flatMap { it.remoteUpdates }
-                        .map { "${it.destination}: ${it.status} (${it.message ?: "no message"})" }
+                        .map { "${it.remoteName}: ${it.status} (${it.message ?: "no message"})" }
                         .joinToString("; ")
                     SyncResult.Failure(GitException.OperationFailed("Push rejected: $errDetails"))
                 }
@@ -189,6 +189,7 @@ class GitSyncEngine {
                     }
                 }
             }
+            Unit
         }
     }
 

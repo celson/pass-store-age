@@ -23,8 +23,9 @@ android {
 }
 
 dependencies {
-    // JGit Core
+    // JGit Core & JSch SSH support
     implementation(libs.jgit)
+    implementation(libs.jgit.ssh.jsch)
 
     // Modern JSch with Ed25519 & modern cipher support
     implementation(libs.jsch)
