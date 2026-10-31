@@ -22,6 +22,7 @@ class CustomSshSessionFactory(
     }
 
     override fun createDefaultJSch(fs: FS?): JSch {
+        SshKeyManager.installEd25519Provider()
         val jsch = super.createDefaultJSch(fs)
         val privateKeyBytes = privateKeyContent.toByteArray(Charsets.UTF_8)
         val passphraseBytes = passphrase?.toByteArray(Charsets.UTF_8)

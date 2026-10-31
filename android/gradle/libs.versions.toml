@@ -13,6 +13,7 @@ biometric = "1.2.0-alpha05"
 securityCrypto = "1.1.0-alpha06"
 jgit = "6.10.0.202406032230-r"
 jsch = "0.2.18"
+bouncycastle = "1.78.1"
 slf4j = "1.7.36"
 jna = "5.14.0"
 junit = "4.13.2"
@@ -53,6 +54,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 jgit = { group = "org.eclipse.jgit", name = "org.eclipse.jgit", version.ref = "jgit" }
 jgit-ssh-jsch = { group = "org.eclipse.jgit", name = "org.eclipse.jgit.ssh.jsch", version.ref = "jgit" }
 jsch = { group = "com.github.mwiede", name = "jsch", version.ref = "jsch" }
+bouncycastle = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 slf4j-nop = { group = "org.slf4j", name = "slf4j-nop", version.ref = "slf4j" }
 
 # JNA (required by UniFFI bindings)

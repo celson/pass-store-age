@@ -33,6 +33,9 @@ dependencies {
     // Modern JSch with Ed25519 & modern cipher support
     implementation(libs.jsch)
 
+    // Ed25519 for JSch: its JCA implementation lives in a Java 15+ multi-release entry that Android does not load
+    implementation(libs.bouncycastle)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
 

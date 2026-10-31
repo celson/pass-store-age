@@ -52,7 +52,7 @@ class SyncViewModel(
     }
 
     fun loadOrCreateSshKey() {
-        // Keys saved by earlier versions (unparseable by JSch) are replaced by a fresh one
+        // Keys JSch cannot parse (saved by versions before 1.0.2) are replaced by a fresh one
         val stored = if (sshKeyFile.exists()) {
             SshKeyManager.loadKeyPair(sshKeyFile.readText(Charsets.UTF_8))
         } else {
@@ -71,7 +71,7 @@ class SyncViewModel(
         cachedKeyPair = newKey
         sshPublicKey.value = newKey.publicKeyOpenSsh
         sshKeyFile.parentFile?.mkdirs()
-        sshKeyFile.writeText(newKey.privateKeyPkcs8Pem, Charsets.UTF_8)
+        sshKeyFile.writeText(newKey.privateKeyPem, Charsets.UTF_8)
     }
 
     fun copySshPublicKey() {
@@ -168,7 +168,7 @@ class SyncViewModel(
     }
 
     private fun getAuth(): GitAuth {
-        val pem = cachedKeyPair?.privateKeyPkcs8Pem
+        val pem = cachedKeyPair?.privateKeyPem
             ?: if (sshKeyFile.exists()) sshKeyFile.readText() else ""
         return if (pem.isNotEmpty()) {
             GitAuth.SshKey(privateKeyContent = pem)
