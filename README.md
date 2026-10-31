@@ -1,4 +1,17 @@
+<p align="center">
+  <img src="assets/icon.svg" alt="Passage" width="128" height="128">
+</p>
+
 # Passage: Gopass & age Password Store para Android
+
+[![Build](https://img.shields.io/github/actions/workflow/status/celson/pass-store-age/build.yml?branch=main&logo=github&label=build)](https://github.com/celson/pass-store-age/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/celson/pass-store-age?logo=github&label=release)](https://github.com/celson/pass-store-age/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/celson/pass-store-age/total?logo=android&label=downloads)](https://github.com/celson/pass-store-age/releases)
+[![License: MIT](https://img.shields.io/github/license/celson/pass-store-age)](LICENSE)
+![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white)
+![Rust](https://img.shields.io/badge/Rust-age%20engine-000000?logo=rust&logoColor=white)
+![gopass compatible](https://img.shields.io/badge/gopass-compat%C3%ADvel-0E7C86)
 
 Aplicativo moderno para Android que lê, gerencia e sincroniza segredos compatíveis com o **gopass** criptografados com o **age** em repositórios **Git** remotos.
 

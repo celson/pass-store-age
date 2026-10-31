@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nested arches form a passage; the keyhole is the vault at the end of it -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M32,76V44A22,22 0 0 1 76,44V76"
+        android:strokeWidth="3"
+        android:strokeAlpha="0.5"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M38,76V46A16,16 0 0 1 70,46V76"
+        android:strokeWidth="3"
+        android:strokeAlpha="0.75"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M44,76V50A10,10 0 0 1 64,50V76ZM52.4,58.77L51.2,69L56.8,69L55.6,58.77A3.2,3.2 0 1 0 52.4,58.77Z" />
+</vector>
