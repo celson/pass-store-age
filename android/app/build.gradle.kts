@@ -54,6 +54,13 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            // JSch and BouncyCastle both ship OSGi manifests under META-INF/versions; unused on Android
+            excludes += "META-INF/versions/**/OSGI-INF/MANIFEST.MF"
+        }
+    }
 }
 
 dependencies {
