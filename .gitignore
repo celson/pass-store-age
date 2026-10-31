@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Rust / Cargo
+age-mobile/target/
+
+# Gradle & Android
+.gradle/
+build/
+*/build/
+*/*/build/
+.idea/
+*.iml
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# Local test keystores
+*.jks
+*.keystore
+
+# Temporary files
+*.log
+*.tmp

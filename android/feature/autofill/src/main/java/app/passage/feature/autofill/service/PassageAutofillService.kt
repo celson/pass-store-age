@@ -1,0 +1,131 @@
+package app.passage.feature.autofill.service
+
+import android.os.CancellationSignal
+import android.service.autofill.AutofillService
+import android.service.autofill.Dataset
+import android.service.autofill.FillCallback
+import android.service.autofill.FillRequest
+import android.service.autofill.FillResponse
+import android.service.autofill.SaveCallback
+import android.service.autofill.SaveRequest
+import android.view.autofill.AutofillValue
+import android.widget.RemoteViews
+import app.passage.core.database.PassageDatabase
+import app.passage.core.security.AndroidKeystoreManager
+import app.passage.crypto.AgeCryptoManager
+import app.passage.feature.autofill.R
+import app.passage.feature.autofill.parser.AutofillStructureParser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import java.io.File
+
+class PassageAutofillService : AutofillService() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val cryptoManager = AgeCryptoManager()
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
+    }
+
+    override fun onFillRequest(
+        request: FillRequest,
+        cancellationSignal: CancellationSignal,
+        callback: FillCallback
+    ) {
+        val structure = request.fillContexts.lastOrNull()?.structure ?: run {
+            callback.onSuccess(null)
+            return
+        }
+
+        val parsedForm = AutofillStructureParser.parse(structure)
+
+        if (parsedForm.passwordField == null && parsedForm.usernameField == null) {
+            callback.onSuccess(null)
+            return
+        }
+
+        serviceScope.launch {
+            try {
+                // Heuristic search key: domain (e.g. "github.com") or app name
+                val queryKey = extractQueryKey(parsedForm.webDomain, parsedForm.packageName)
+
+                if (queryKey.isEmpty()) {
+                    callback.onSuccess(null)
+                    return@launch
+                }
+
+                val db = PassageDatabase.getInstance(applicationContext)
+                val matches = db.secretDao().search(queryKey)
+
+                if (matches.isEmpty()) {
+                    callback.onSuccess(null)
+                    return@launch
+                }
+
+                val responseBuilder = FillResponse.Builder()
+                val vaultDir = File(filesDir, "vault")
+
+                for (match in matches.take(3)) {
+                    val secretFile = File(vaultDir, match.relativePath)
+                    if (!secretFile.exists()) continue
+
+                    // In a production setup, active identity is decrypted via Keystore
+                    // For autofill, we decrypt the secret file to read login and password
+                    val encryptedBytes = secretFile.readBytes()
+                    val gopassSecret = cryptoManager.decryptSecret(encryptedBytes, emptyList()).getOrNull() ?: continue
+
+                    val presentation = RemoteViews(packageName, R.layout.autofill_inline_suggestion).apply {
+                        setTextViewText(R.id.autofill_title, match.name)
+                        val subtitle = gopassSecret.attributes["login"] ?: gopassSecret.attributes["email"] ?: "Passage"
+                        setTextViewText(R.id.autofill_subtitle, subtitle)
+                    }
+
+                    val datasetBuilder = Dataset.Builder(presentation)
+
+                    parsedForm.usernameField?.let { userFieldId ->
+                        val username = gopassSecret.attributes["login"]
+                            ?: gopassSecret.attributes["email"]
+                            ?: gopassSecret.attributes["username"]
+                            ?: ""
+                        if (username.isNotEmpty()) {
+                            datasetBuilder.setValue(userFieldId, AutofillValue.forText(username))
+                        }
+                    }
+
+                    parsedForm.passwordField?.let { passFieldId ->
+                        if (gopassSecret.password.isNotEmpty()) {
+                            datasetBuilder.setValue(passFieldId, AutofillValue.forText(gopassSecret.password))
+                        }
+                    }
+
+                    responseBuilder.addDataset(datasetBuilder.build())
+                }
+
+                callback.onSuccess(responseBuilder.build())
+            } catch (e: Exception) {
+                callback.onSuccess(null)
+            }
+        }
+    }
+
+    override fun onSaveRequest(request: SaveRequest, callback: SaveCallback) {
+        // Can be used to prompt the user to save newly entered credentials into the vault
+        callback.onSuccess()
+    }
+
+    private fun extractQueryKey(webDomain: String?, packageName: String?): String {
+        if (!webDomain.isNullOrBlank()) {
+            return webDomain.removePrefix("www.").substringBefore(".")
+        }
+        if (!packageName.isNullOrBlank()) {
+            val parts = packageName.split(".")
+            return parts.lastOrNull { it != "android" && it != "app" } ?: packageName
+        }
+        return ""
+    }
+}

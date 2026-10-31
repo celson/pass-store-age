@@ -1,0 +1,20 @@
+[package]
+name = "age-mobile"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+age = { version = "0.10", features = ["armor", "ssh"] }
+uniffi = { version = "0.28", features = ["cli"] }
+thiserror = "1.0"
+zeroize = { version = "1.8", features = ["derive"] }
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
