@@ -20,7 +20,7 @@ mkdir -p "$OUTPUT_JNI_DIR/armeabi-v7a"
 mkdir -p "$OUTPUT_JNI_DIR/x86_64"
 mkdir -p "$OUTPUT_JNI_DIR/x86"
 
-cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 -o "$OUTPUT_JNI_DIR" build --release
+cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 -p 26 -o "$OUTPUT_JNI_DIR" build --release
 
 echo "=== Generating Kotlin UniFFI bindings ==="
 # Build host dylib to extract interface metadata
