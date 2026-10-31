@@ -32,8 +32,8 @@ android {
 }
 
 dependencies {
-    // JNA is required for UniFFI bindings
-    api(libs.jna)
+    // JNA is required for UniFFI bindings; only the AAR ships libjnidispatch.so for Android
+    api(variantOf(libs.jna) { artifactType("aar") })
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)
