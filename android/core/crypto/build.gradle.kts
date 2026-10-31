@@ -33,7 +33,7 @@ android {
 
 dependencies {
     // JNA is required for UniFFI bindings
-    implementation(libs.jna)
+    api(libs.jna)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)
