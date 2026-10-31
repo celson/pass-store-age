@@ -52,18 +52,22 @@ class SyncViewModel(
     }
 
     fun loadOrCreateSshKey() {
-        if (sshKeyFile.exists()) {
-            val pem = sshKeyFile.readText(Charsets.UTF_8)
-            // If already generated, we load the cached or derive the public key
-            sshPublicKey.value = "ssh-ed25519 (chave salva localmente) passage-android@device"
-            cachedKeyPair = GeneratedSshKeyPair("", pem)
+        // Keys saved by earlier versions (unparseable by JSch) are replaced by a fresh one
+        val stored = if (sshKeyFile.exists()) {
+            SshKeyManager.loadKeyPair(sshKeyFile.readText(Charsets.UTF_8))
+        } else {
+            null
+        }
+        if (stored != null) {
+            cachedKeyPair = stored
+            sshPublicKey.value = stored.publicKeyOpenSsh
         } else {
             generateNewSshKey()
         }
     }
 
     fun generateNewSshKey() {
-        val newKey = SshKeyManager.generateEd25519KeyPair()
+        val newKey = SshKeyManager.generateKeyPair()
         cachedKeyPair = newKey
         sshPublicKey.value = newKey.publicKeyOpenSsh
         sshKeyFile.parentFile?.mkdirs()

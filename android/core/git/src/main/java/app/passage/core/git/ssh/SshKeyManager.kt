@@ -2,6 +2,7 @@ package app.passage.core.git.ssh
 
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import com.jcraft.jsch.JSch
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
@@ -14,61 +15,41 @@ data class GeneratedSshKeyPair(
 
 /**
  * Manages SSH keypair generation and OpenSSH formatting.
+ *
+ * Only RSA is generated: Ed25519 is unavailable in the Android JCA before API 33 and
+ * JSch cannot read Ed25519 keys in PKCS#8, which made every clone fail with "invalid privatekey".
  */
 object SshKeyManager {
 
     private const val COMMENT = "passage-android@device"
+    private const val RSA_KEY_SIZE = 3072
 
     /**
-     * Generates a modern Ed25519 SSH Keypair.
-     * Falls back to RSA 4096 if the Android runtime does not have Ed25519 provider.
+     * Generates an RSA SSH keypair; the private key is PKCS#8 PEM (`BEGIN PRIVATE KEY`),
+     * the only RSA PEM layout JSch parses for generated keys.
      */
-    fun generateEd25519KeyPair(): GeneratedSshKeyPair {
-        return try {
-            val kpg = KeyPairGenerator.getInstance("Ed25519")
-            val keyPair = kpg.generateKeyPair()
-            formatEd25519KeyPair(keyPair)
-        } catch (e: Exception) {
-            // Fallback to RSA 4096 if Ed25519 algorithm is not present on older Android API levels
-            generateRsaKeyPair(4096)
-        }
-    }
-
-    /**
-     * Generates an RSA SSH Keypair of specified bit length (e.g. 4096).
-     */
-    fun generateRsaKeyPair(keySize: Int = 4096): GeneratedSshKeyPair {
+    fun generateKeyPair(keySize: Int = RSA_KEY_SIZE): GeneratedSshKeyPair {
         val kpg = KeyPairGenerator.getInstance("RSA")
         kpg.initialize(keySize, SecureRandom())
-        val keyPair = kpg.generateKeyPair()
-        return formatRsaKeyPair(keyPair)
+        return formatRsaKeyPair(kpg.generateKeyPair())
     }
 
-    private fun formatEd25519KeyPair(keyPair: KeyPair): GeneratedSshKeyPair {
-        val pubBytes = keyPair.public.encoded
-        // Extract raw 32-byte public key from X.509 SubjectPublicKeyInfo
-        val rawPub = pubBytes.takeLast(32).toByteArray()
-
-        val out = ByteArrayOutputStream()
-        val dataOut = DataOutputStream(out)
-
-        val keyType = "ssh-ed25519".toByteArray(Charsets.US_ASCII)
-        dataOut.writeInt(keyType.size)
-        dataOut.write(keyType)
-
-        dataOut.writeInt(rawPub.size)
-        dataOut.write(rawPub)
-        dataOut.flush()
-
-        val base64Pub = Base64.getEncoder().encodeToString(out.toByteArray())
-        val publicKeyOpenSsh = "ssh-ed25519 $base64Pub $COMMENT"
-
-        val privateKeyPem = encodePrivateKeyToPkcs8Pem(keyPair.private.encoded, "PRIVATE KEY")
-
-        return GeneratedSshKeyPair(
-            publicKeyOpenSsh = publicKeyOpenSsh,
-            privateKeyPkcs8Pem = privateKeyPem
-        )
+    /**
+     * Loads a stored private key with JSch and rebuilds its public key.
+     * Returns null when JSch cannot parse it, so callers can regenerate it.
+     */
+    fun loadKeyPair(privateKeyPem: String): GeneratedSshKeyPair? {
+        return try {
+            val parsed = com.jcraft.jsch.KeyPair.load(JSch(), privateKeyPem.toByteArray(Charsets.UTF_8), null)
+            val keyType = when (parsed.keyType) {
+                com.jcraft.jsch.KeyPair.RSA -> "ssh-rsa"
+                else -> return null
+            }
+            val base64Pub = Base64.getEncoder().encodeToString(parsed.publicKeyBlob)
+            GeneratedSshKeyPair("$keyType $base64Pub $COMMENT", privateKeyPem)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun formatRsaKeyPair(keyPair: KeyPair): GeneratedSshKeyPair {
@@ -92,7 +73,7 @@ object SshKeyManager {
         val base64Pub = Base64.getEncoder().encodeToString(out.toByteArray())
         val publicKeyOpenSsh = "ssh-rsa $base64Pub $COMMENT"
 
-        val privateKeyPem = encodePrivateKeyToPkcs8Pem(keyPair.private.encoded, "RSA PRIVATE KEY")
+        val privateKeyPem = encodePrivateKeyToPkcs8Pem(keyPair.private.encoded)
 
         return GeneratedSshKeyPair(
             publicKeyOpenSsh = publicKeyOpenSsh,
@@ -100,8 +81,8 @@ object SshKeyManager {
         )
     }
 
-    private fun encodePrivateKeyToPkcs8Pem(privateKeyBytes: ByteArray, header: String): String {
+    private fun encodePrivateKeyToPkcs8Pem(privateKeyBytes: ByteArray): String {
         val base64 = Base64.getMimeEncoder(64, "\n".toByteArray()).encodeToString(privateKeyBytes)
-        return "-----BEGIN $header-----\n$base64\n-----END $header-----\n"
+        return "-----BEGIN PRIVATE KEY-----\n$base64\n-----END PRIVATE KEY-----\n"
     }
 }
