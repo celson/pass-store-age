@@ -1,5 +1,8 @@
 package app.passage.feature.sync.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +43,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,6 +73,19 @@ fun SyncScreen(
     val repoStatus by viewModel.repoStatus.collectAsState()
     val sshPublicKey by viewModel.sshPublicKey.collectAsState()
     val remoteUrl by viewModel.remoteUrl.collectAsState()
+    val identityCount by viewModel.identityCount.collectAsState()
+
+    val context = LocalContext.current
+    var identityFile by remember { mutableStateOf<ByteArray?>(null) }
+    var identityFileName by remember { mutableStateOf("") }
+    var identityPassphrase by remember { mutableStateOf("") }
+    var pastedKey by remember { mutableStateOf("") }
+    val identityPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            identityFile = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            identityFileName = uri.lastPathSegment?.substringAfterLast('/').orEmpty()
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -156,7 +177,93 @@ fun SyncScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Section 2: Remote Repository Setup / Status
+            // Section 2: age identities (private keys used to decrypt secrets)
+            Text(
+                text = "Chave age (identidades)",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = if (identityCount > 0) {
+                    "$identityCount chave(s) importada(s) e guardada(s) com criptografia no Keystore do Android."
+                } else {
+                    "Nenhuma chave importada: sem ela não é possível abrir os segredos. " +
+                        "Importe o arquivo de identidades do gopass (e a senha dele) ou cole uma chave AGE-SECRET-KEY-1..."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    OutlinedButton(
+                        onClick = { identityPicker.launch(arrayOf("*/*")) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Key, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (identityFile == null) "Escolher arquivo de identidades" else "Arquivo: $identityFileName")
+                    }
+                    if (identityFile != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = identityPassphrase,
+                            onValueChange = { identityPassphrase = it },
+                            label = { Text("Senha do arquivo") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                identityFile?.let { viewModel.importIdentityFile(it, identityPassphrase) }
+                                identityPassphrase = ""
+                                identityFile = null
+                                identityFileName = ""
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Importar identidades")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    OutlinedTextField(
+                        value = pastedKey,
+                        onValueChange = { pastedKey = it },
+                        label = { Text("Ou cole a chave (AGE-SECRET-KEY-1...)") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilledTonalButton(
+                            onClick = {
+                                viewModel.importIdentityText(pastedKey)
+                                pastedKey = ""
+                            },
+                            enabled = pastedKey.isNotBlank()
+                        ) {
+                            Text("Importar chave")
+                        }
+                        if (identityCount > 0) {
+                            TextButton(onClick = { viewModel.clearIdentities() }) {
+                                Text("Remover chaves")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Section 3: Remote Repository Setup / Status
             Text(
                 text = "Repositório Git",
                 style = MaterialTheme.typography.titleMedium,

@@ -158,4 +158,32 @@ mod tests {
             _ => panic!("Expected InvalidIdentity"),
         }
     }
+
+    /// A gopass identities file is an age file protected by a passphrase (scrypt);
+    /// the app opens it with `decrypt_bytes(file, [], Some(passphrase))`.
+    #[test]
+    fn test_passphrase_protected_identities_file() {
+        use std::io::Write;
+
+        let key = generate_keypair();
+        let content = format!("# created: 2026-01-01\n# public key: {}\n{}\n", key.public_recipient, key.secret_identity);
+
+        let passphrase = age::secrecy::SecretString::new("correct horse".to_string().into());
+        let encryptor = age::Encryptor::with_user_passphrase(passphrase);
+        let mut file = Vec::new();
+        let mut writer = encryptor.wrap_output(&mut file).expect("wrap_output failed");
+        writer.write_all(content.as_bytes()).unwrap();
+        writer.finish().unwrap();
+
+        let opened = decrypt_bytes(file.clone(), vec![], Some("correct horse".to_string()))
+            .expect("opening the identities file failed");
+        let text = String::from_utf8(opened).unwrap();
+        assert!(text.lines().any(|l| l == key.secret_identity));
+
+        assert!(decrypt_bytes(file.clone(), vec![], Some("wrong".to_string())).is_err());
+        assert!(matches!(
+            decrypt_bytes(file, vec![], None),
+            Err(AgeError::PassphraseRequired)
+        ));
+    }
 }

@@ -13,8 +13,10 @@ import app.passage.core.git.sync.GitSyncEngine
 import app.passage.core.git.tree.GopassTreeWalker
 import app.passage.core.git.tree.VaultItem
 import app.passage.core.security.BiometricAuthManager
+import app.passage.core.security.IdentityStore
 import app.passage.core.security.SecureClipboardManager
 import app.passage.crypto.AgeCryptoManager
+import app.passage.crypto.ageUserMessage
 import app.passage.crypto.GopassSecret
 import app.passage.feature.detail.ui.SecretDetailViewModel
 import app.passage.feature.editor.ui.SecretEditorViewModel
@@ -31,6 +33,7 @@ val appModule = module {
     single { AgeCryptoManager() }
     single { GitSyncEngine() }
     single { GopassTreeWalker() }
+    single { IdentityStore(get()) }
     single { SecureClipboardManager(get()) }
     single { BiometricAuthManager(get()) }
 
@@ -44,6 +47,7 @@ val appModule = module {
         object : SecretRepository {
             private val walker = get<GopassTreeWalker>()
             private val crypto = get<AgeCryptoManager>()
+            private val identityStore = get<IdentityStore>()
 
             override fun getVaultTree(): Flow<VaultFolder> = flow {
                 val rootItem = walker.buildTree(repoDir)
@@ -53,7 +57,8 @@ val appModule = module {
             override suspend fun getSecretDetail(relativePath: String): Result<SecretDetail> = runCatching {
                 val file = File(repoDir, relativePath)
                 val encryptedBytes = file.readBytes()
-                val gopassSecret = crypto.decryptSecret(encryptedBytes, emptyList()).getOrThrow()
+                val gopassSecret = crypto.decryptSecret(encryptedBytes, identityStore.getIdentities())
+                    .getOrElse { throw IllegalStateException(it.ageUserMessage(), it) }
 
                 SecretDetail(
                     name = file.name.removeSuffix(".age"),
@@ -114,6 +119,8 @@ val appModule = module {
         SyncViewModel(
             gitSyncEngine = get(),
             clipboardManager = get(),
+            cryptoManager = get(),
+            identityStore = get(),
             vaultDir = File(context.filesDir, "vault"),
             sshKeyFile = File(context.filesDir, "ssh/id_ed25519")
         )

@@ -9,7 +9,10 @@ import app.passage.core.git.model.SyncResult
 import app.passage.core.git.ssh.GeneratedSshKeyPair
 import app.passage.core.git.ssh.SshKeyManager
 import app.passage.core.git.sync.GitSyncEngine
+import app.passage.core.security.IdentityStore
 import app.passage.core.security.SecureClipboardManager
+import app.passage.crypto.AgeCryptoManager
+import app.passage.crypto.ageUserMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,12 +32,15 @@ sealed class SyncUiOperation {
 class SyncViewModel(
     private val gitSyncEngine: GitSyncEngine,
     private val clipboardManager: SecureClipboardManager,
+    private val cryptoManager: AgeCryptoManager,
+    private val identityStore: IdentityStore,
     private val vaultDir: File,
     private val sshKeyFile: File
 ) : ViewModel() {
 
     val remoteUrl = MutableStateFlow("")
     val sshPublicKey = MutableStateFlow("")
+    val identityCount = MutableStateFlow(identityStore.getIdentities().size)
     private var cachedKeyPair: GeneratedSshKeyPair? = null
 
     private val _operation = MutableStateFlow<SyncUiOperation>(SyncUiOperation.Idle)
@@ -72,6 +78,28 @@ class SyncViewModel(
         sshPublicKey.value = newKey.publicKeyOpenSsh
         sshKeyFile.parentFile?.mkdirs()
         sshKeyFile.writeText(newKey.privateKeyPem, Charsets.UTF_8)
+    }
+
+    fun importIdentityFile(content: ByteArray, passphrase: String) = importIdentities(content, passphrase)
+
+    fun importIdentityText(text: String) = importIdentities(text.toByteArray(Charsets.UTF_8), null)
+
+    fun clearIdentities() {
+        identityStore.clear()
+        identityCount.value = 0
+    }
+
+    private fun importIdentities(content: ByteArray, passphrase: String?) {
+        viewModelScope.launch {
+            cryptoManager.importIdentities(content, passphrase).fold(
+                onSuccess = { identities ->
+                    identityStore.saveIdentities(identities)
+                    identityCount.value = identities.size
+                    _operation.value = SyncUiOperation.Success("${identities.size} chave(s) age importada(s)")
+                },
+                onFailure = { _operation.value = SyncUiOperation.Error(it.ageUserMessage()) }
+            )
+        }
     }
 
     fun copySshPublicKey() {
