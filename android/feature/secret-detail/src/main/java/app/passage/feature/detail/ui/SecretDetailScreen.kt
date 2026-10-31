@@ -113,6 +113,9 @@ class SecretDetailViewModel(
     }
 }
 
+/** Fixed-length mask, so a hidden value does not leak its length. */
+private const val MASKED_VALUE = "••••••••••••"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecretDetailScreen(
@@ -125,6 +128,8 @@ fun SecretDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var isPasswordVisible by remember { mutableStateOf(false) }
+    var revealedAttributes by remember { mutableStateOf(emptySet<String>()) }
+    var areNotesVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(relativePath) {
         viewModel.loadSecret(relativePath)
@@ -198,7 +203,7 @@ fun SecretDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = if (isPasswordVisible) secret.password else "••••••••••••",
+                                        text = if (isPasswordVisible) secret.password else MASKED_VALUE,
                                         style = MaterialTheme.typography.titleLarge,
                                         fontFamily = FontFamily.Monospace,
                                         modifier = Modifier.weight(1f)
@@ -259,9 +264,22 @@ fun SecretDetailScreen(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.outline
                                         )
+                                        val isRevealed = key in revealedAttributes
                                         Text(
-                                            text = value,
+                                            text = if (isRevealed) value else MASKED_VALUE,
                                             style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                    IconButton(onClick = {
+                                        revealedAttributes = if (key in revealedAttributes) {
+                                            revealedAttributes - key
+                                        } else {
+                                            revealedAttributes + key
+                                        }
+                                    }) {
+                                        Icon(
+                                            imageVector = if (key in revealedAttributes) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            contentDescription = if (key in revealedAttributes) "Ocultar $key" else "Revelar $key"
                                         )
                                     }
                                     IconButton(onClick = {
@@ -279,15 +297,27 @@ fun SecretDetailScreen(
                         // Notes section
                         if (secret.notes.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Notas",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Notas",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = { areNotesVisible = !areNotesVisible }) {
+                                    Icon(
+                                        imageVector = if (areNotesVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = if (areNotesVisible) "Ocultar notas" else "Revelar notas"
+                                    )
+                                }
+                            }
                             Spacer(modifier = Modifier.height(8.dp))
                             OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    text = secret.notes,
+                                    text = if (areNotesVisible) secret.notes else MASKED_VALUE,
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.padding(14.dp)
                                 )
