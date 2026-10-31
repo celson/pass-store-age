@@ -15,12 +15,15 @@ echo "=== Building age-mobile for Android ==="
 echo "Target JNI Directory: $OUTPUT_JNI_DIR"
 echo "Target Kotlin Directory: $KOTLIN_OUT_DIR"
 
-mkdir -p "$OUTPUT_JNI_DIR/arm64-v8a"
-mkdir -p "$OUTPUT_JNI_DIR/armeabi-v7a"
-mkdir -p "$OUTPUT_JNI_DIR/x86_64"
-mkdir -p "$OUTPUT_JNI_DIR/x86"
+# Space-separated ABI list; override (e.g. ABIS="arm64-v8a") to speed up non-release builds
+ABIS="${ABIS:-arm64-v8a armeabi-v7a x86_64 x86}"
+TARGET_ARGS=()
+for abi in $ABIS; do
+    mkdir -p "$OUTPUT_JNI_DIR/$abi"
+    TARGET_ARGS+=(-t "$abi")
+done
 
-cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 --platform 26 -o "$OUTPUT_JNI_DIR" build --release
+cargo ndk "${TARGET_ARGS[@]}" --platform 26 -o "$OUTPUT_JNI_DIR" build --release
 
 echo "=== Generating Kotlin UniFFI bindings ==="
 # Build host dylib to extract interface metadata
