@@ -48,6 +48,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -62,19 +64,13 @@ class VaultViewModel(
 ) : ViewModel() {
 
     val uiState: StateFlow<VaultUiState> = getVaultTreeUseCase()
+        .map<VaultFolder, VaultUiState> { folder -> VaultUiState.Success(folder) }
+        .catch { e -> emit(VaultUiState.Error(e.message ?: "Failed to load vault")) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = VaultUiState.Loading
-        ).let { flow ->
-            val mapped = MutableStateFlow<VaultUiState>(VaultUiState.Loading)
-            viewModelScope.launch {
-                flow.collect { folder ->
-                    mapped.value = VaultUiState.Success(folder)
-                }
-            }
-            mapped.asStateFlow()
-        }
+        )
 
     private val _currentPath = MutableStateFlow<List<String>>(emptyList())
     val currentPath: StateFlow<List<String>> = _currentPath.asStateFlow()
